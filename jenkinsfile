@@ -3,12 +3,34 @@ pipeline {
 
     parameters {
         choice(name: 'ACTION', choices: ['plan', 'apply', 'destroy'], description: 'Terraform action')
+        string(name: 'PROJECT_ID', defaultValue: '', description: 'GCP project ID (required)')
+        string(name: 'REGION', defaultValue: 'asia-south1', description: 'GCP region')
+        string(name: 'VIEWER_MEMBERS', defaultValue: '', description: 'Comma-separated viewers, e.g. user:alice@example.com,group:devs@example.com (optional)')
     }
 
     stages {
         stage('Checkout') {
             steps {
                 checkout scm
+            }
+        }
+
+        stage('Set Terraform variables') {
+            steps {
+                script {
+                    if (!params.PROJECT_ID?.trim()) {
+                        error('PROJECT_ID parameter is required')
+                    }
+                    // Convert "a,b" into an HCL list: ["a","b"]
+                    def members = params.VIEWER_MEMBERS.split(',')
+                        .collect { it.trim() }
+                        .findAll { it }
+                        .collect { "\"${it}\"" }
+                        .join(',')
+                    env.TF_VAR_project_id = params.PROJECT_ID.trim()
+                    env.TF_VAR_region = params.REGION.trim()
+                    env.TF_VAR_viewer_members = "[${members}]"
+                }
             }
         }
 
@@ -30,7 +52,7 @@ pipeline {
         stage('Plan') {
             steps {
                 withCredentials([file(credentialsId: 'gcp-sa-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
-                    sh 'terraform plan -input=false -var-file=terraform.tfvars -out=tfplan'
+                    sh 'terraform plan -input=false -out=tfplan'
                 }
             }
         }
@@ -38,7 +60,7 @@ pipeline {
         stage('Approval') {
             when { expression { params.ACTION != 'plan' } }
             steps {
-                input message: "Proceed with terraform ${params.ACTION}?"
+                input message: "Proceed with terraform ${params.ACTION} on project ${params.PROJECT_ID}?"
             }
         }
 
@@ -50,7 +72,7 @@ pipeline {
                         if (params.ACTION == 'apply') {
                             sh 'terraform apply -input=false tfplan'
                         } else {
-                            sh 'terraform destroy -input=false -var-file=terraform.tfvars -auto-approve'
+                            sh 'terraform destroy -input=false -auto-approve'
                         }
                     }
                 }
