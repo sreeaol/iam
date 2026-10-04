@@ -1,30 +1,22 @@
 variable "project_id" {
-  description = "The GCP project ID"
   type        = string
+  description = "GCP project ID"
 }
 
 variable "region" {
-  description = "Region for resources"
   type        = string
-  default     = "us-central1"
+  description = "Default GCP region"
+  default     = "asia-south1"
 }
 
-variable "role_id" {
-  description = "Custom IAM role ID"
+variable "service_account_id" {
   type        = string
+  description = "Account ID for the application service account"
+  default     = "app-sa"
 }
 
-variable "role_title" {
-  description = "Title of the IAM role"
-  type        = string
-}
-
-variable "role_description" {
-  description = "Description of the IAM role"
-  type        = string
-}
-
-variable "permissions" {
-  description = "List of permissions for the role"
+variable "viewer_members" {
   type        = list(string)
+  description = "Members who get the Viewer role, e.g. user:alice@example.com or group:devs@example.com"
+  default     = []
 }
