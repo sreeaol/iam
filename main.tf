@@ -3,13 +3,9 @@ provider "google" {
   region  = var.region
 }
 
-resource "google_service_account" "jenkins_sa" {
-  account_id   = "jenkins-gce"
-  display_name = "Jenkins GCE Service Account"
-}
-
-resource "google_project_iam_member" "jenkins_sa_binding" {
-  project = var.project_id
-  role    = "roles/compute.instanceAdmin"
-  member  = "serviceAccount:${google_service_account.jenkins_sa.email}"
+resource "google_project_iam_custom_role" "custom_role" {
+  role_id     = var.role_id
+  title       = var.role_title
+  description = var.role_description
+  permissions = var.permissions
 }
