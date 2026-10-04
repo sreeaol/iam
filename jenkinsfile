@@ -1,0 +1,63 @@
+pipeline {
+    agent any
+
+    environment {
+        // Jenkins credentials IDs (configure in Jenkins > Manage Credentials)
+        GOOGLE_CLOUD_KEYFILE_JSON = credentials('gcp-sa-key')   // Service account JSON
+        PROJECT_ID                = credentials('gcp-project-id') // Project ID string
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Prepare tfvars') {
+            steps {
+                // Dynamically write terraform.tfvars from Jenkins env
+                sh '''
+                cat > terraform.tfvars <<EOF
+                project_id      = "${PROJECT_ID}"
+                region          = "us-central1"
+                role_id         = "customViewer"
+                role_title      = "Custom Viewer"
+                role_description = "Custom role with limited view permissions"
+                permissions     = [
+                  "resourcemanager.projects.get",
+                  "resourcemanager.projects.list",
+                  "compute.instances.get",
+                  "compute.instances.list"
+                ]
+                EOF
+                '''
+            }
+        }
+
+        stage('Terraform Init') {
+            steps {
+                sh 'terraform init'
+            }
+        }
+
+        stage('Terraform Plan') {
+            steps {
+                sh 'terraform plan -out=tfplan'
+            }
+        }
+
+        stage('Terraform Apply') {
+            steps {
+                input message: "Apply IAM role changes?"
+                sh 'terraform apply -auto-approve tfplan'
+            }
+        }
+    }
+
+    post {
+        always {
+            archiveArtifacts artifacts: '**/*.tfstate', fingerprint: true
+        }
+    }
+}
