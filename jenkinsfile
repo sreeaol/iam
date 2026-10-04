@@ -3,7 +3,7 @@ pipeline {
 
     parameters {
         choice(name: 'ACTION', choices: ['plan', 'apply', 'destroy'], description: 'Terraform action')
-        string(name: 'PROJECT_ID', defaultValue: '', description: 'GCP project ID (required)')
+        string(name: 'PROJECT_ID', defaultValue: 'project-135912bf-7758-481f-965', description: 'GCP project ID')
         string(name: 'REGION', defaultValue: 'asia-south1', description: 'GCP region')
         string(name: 'VIEWER_MEMBERS', defaultValue: '', description: 'Comma-separated viewers, e.g. user:alice@example.com,group:devs@example.com (optional)')
     }
